@@ -47,7 +47,7 @@ let
 
   graphicalPackages = pkgs:
     with pkgs; [
-      alsaLib
+      alsa-lib
       at-spi2-atk
       at-spi2-core
       atk
@@ -71,7 +71,7 @@ let
       libcap
       libdrm
       libgnome-keyring3
-      libgpgerror
+      libgpg-error
       libnotify
       libpng
       libsecret
