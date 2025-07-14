@@ -1,49 +1,49 @@
-{ lib
-, pkgs
-, enableJulia ? true
-, juliaVersion ? "1.10.1"
-, enableConda ? false
-, enablePython ? false
-, enableQuarto ? true
-, condaInstallationPath ? "~/.conda"
-, condaJlEnv ? "conda_jl"
-, pythonVersion ? "3.8"
-, enableGraphical ? false
-, enableNVIDIA ? false
-, enableNode ? false
-, commandName ? "scientific-fhs"
-, commandScript ? "bash"
-, texliveScheme ? pkgs.texlive.combined.scheme-minimal
-, extraOutputsToInstall ? ["man" "dev"]
+{
+  lib,
+  pkgs,
+  enableJulia ? true,
+  juliaVersion ? "1.10.1",
+  enableConda ? false,
+  enablePython ? false,
+  enableQuarto ? true,
+  condaInstallationPath ? "~/.conda",
+  condaJlEnv ? "conda_jl",
+  pythonVersion ? "3.8",
+  enableGraphical ? false,
+  enableNVIDIA ? false,
+  enableNode ? false,
+  commandName ? "scientific-fhs",
+  commandScript ? "bash",
+  texliveScheme ? pkgs.texlive.combined.scheme-minimal,
+  extraOutputsToInstall ? ["man" "dev"],
 }:
-
-with lib;
-let
+with lib; let
   standardPackages = pkgs:
     with pkgs;
-    [
-      autoconf
-      binutils
-      clang
-      cmake
-      expat
-      gcc
-      gfortran
-      gmp
-      gnumake
-      gperf
-      libxml2
-      m4
-      nss
-      openssl
-      stdenv.cc
-      unzip
-      utillinux
-      which
-      texliveScheme
-      ncurses
-      poetry
-    ] ++ lib.optional enableNode pkgs.nodejs;
+      [
+        autoconf
+        binutils
+        clang
+        cmake
+        expat
+        gcc
+        gfortran
+        gmp
+        gnumake
+        gperf
+        libxml2
+        m4
+        nss
+        openssl
+        stdenv.cc
+        unzip
+        utillinux
+        which
+        texliveScheme
+        ncurses
+        poetry
+      ]
+      ++ lib.optional enableNode pkgs.nodejs;
 
   graphicalPackages = pkgs:
     with pkgs; [
@@ -120,30 +120,35 @@ let
       linuxPackages.nvidia_x11
     ];
 
-
-  quartoPackages = pkgs:
-  let
+  quartoPackages = pkgs: let
     quarto = pkgs.callPackage ./quarto.nix {
       rWrapper = null;
     };
-  in [ quarto ];
+  in [quarto];
 
   condaPackages = pkgs:
-    with pkgs;
-    [ (callPackage ./conda.nix { installationPath = condaInstallationPath; }) ];
+    with pkgs; [(callPackage ./conda.nix {installationPath = condaInstallationPath;})];
 
   pythonPackages = pkgs:
-    with pkgs;
-    [
-      (python3.withPackages (ps: with ps; [
-        jupyter jupyterlab numpy scipy pandas matplotlib scikit-learn tox pygments
-      ]))
+    with pkgs; [
+      (python3.withPackages (ps:
+        with ps; [
+          jupyter
+          jupyterlab
+          numpy
+          scipy
+          pandas
+          matplotlib
+          scikit-learn
+          tox
+          pygments
+        ]))
     ];
 
   targetPkgs = pkgs:
     (standardPackages pkgs)
     ++ optionals enableGraphical (graphicalPackages pkgs)
-    ++ optionals enableJulia [(pkgs.callPackage ./julia.nix { juliaVersion=juliaVersion; })]
+    ++ optionals enableJulia [(pkgs.callPackage ./julia.nix {juliaVersion = juliaVersion;})]
     ++ optionals enableQuarto (quartoPackages pkgs)
     ++ optionals enableConda (condaPackages pkgs)
     ++ optionals enableNVIDIA (nvidiaPackages pkgs)
@@ -176,22 +181,24 @@ let
     export EXTRA_LDFLAGS="-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib"
   '';
 
-  envvars = std_envvars + optionalString enableGraphical graphical_envvars
+  envvars =
+    std_envvars
+    + optionalString enableGraphical graphical_envvars
     + optionalString enableConda conda_envvars
     + optionalString (enableConda && enableJulia) conda_julia_envvars
     + optionalString enableNVIDIA nvidia_envvars;
 
-  multiPkgs = pkgs: with pkgs; [ zlib ];
+  multiPkgs = pkgs: with pkgs; [zlib];
 
   condaInitScript = ''
     conda-install
     conda create -n ${condaJlEnv} python=${pythonVersion}
   '';
 in
-pkgs.buildFHSUserEnv {
-  inherit multiPkgs extraOutputsToInstall;
-  targetPkgs = targetPkgs;
-  name = commandName; # Name used to start this UserEnv
-  runScript = commandScript;
-  profile = envvars;
-}
+  pkgs.buildFHSEnv {
+    inherit multiPkgs extraOutputsToInstall;
+    targetPkgs = targetPkgs;
+    name = commandName; # Name used to start this UserEnv
+    runScript = commandScript;
+    profile = envvars;
+  }
